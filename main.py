@@ -124,6 +124,7 @@ def parse_args_and_config():
                 yaml.dump(new_config, f, default_flow_style=False)
 
         new_config.tb_logger = tb.SummaryWriter(log_dir=tb_path)
+        
         # setup logger
         level = getattr(logging, args.verbose.upper(), None)
         if not isinstance(level, int):

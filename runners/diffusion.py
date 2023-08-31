@@ -25,7 +25,11 @@ def torch2hwcuint8(x, clip=False):
     return x
 
 
-def get_beta_schedule(beta_schedule, *, beta_start, beta_end, num_diffusion_timesteps):
+def get_beta_schedule(beta_schedule, 
+                      *, 
+                      beta_start, 
+                      beta_end, 
+                      num_diffusion_timesteps):
     def sigmoid(x):
         return 1 / (np.exp(-x) + 1)
 
@@ -39,9 +43,13 @@ def get_beta_schedule(beta_schedule, *, beta_start, beta_end, num_diffusion_time
             )
             ** 2
         )
-    elif beta_schedule == "linear":
+    elif beta_schedule == "linear": # all configs use linear schedule
+        # with start=0.0001 and end=0.02, num_diffusion_timesteps=1000
         betas = np.linspace(
-            beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
+            beta_start, 
+            beta_end,
+            num_diffusion_timesteps,
+            dtype=np.float64
         )
     elif beta_schedule == "const":
         betas = beta_end * np.ones(num_diffusion_timesteps, dtype=np.float64)
@@ -60,6 +68,7 @@ def get_beta_schedule(beta_schedule, *, beta_start, beta_end, num_diffusion_time
 
 class Diffusion(object):
     def __init__(self, args, config, device=None):
+        # need to input the args and config from main.py
         self.args = args
         self.config = config
         if device is None:
@@ -71,15 +80,18 @@ class Diffusion(object):
         self.device = device
 
         self.model_var_type = config.model.var_type
+        
         betas = get_beta_schedule(
             beta_schedule=config.diffusion.beta_schedule,
             beta_start=config.diffusion.beta_start,
             beta_end=config.diffusion.beta_end,
             num_diffusion_timesteps=config.diffusion.num_diffusion_timesteps,
         )
+        # reassign betas 
         betas = self.betas = torch.from_numpy(betas).float().to(self.device)
         self.num_timesteps = betas.shape[0]
-
+        
+        # still using the notation from Ho et al. 2020, where alpha_t = 1 - beta_t
         alphas = 1.0 - betas
         alphas_cumprod = alphas.cumprod(dim=0)
         alphas_cumprod_prev = torch.cat(
@@ -333,17 +345,23 @@ class Diffusion(object):
         for i in range(x.size(0)):
             tvu.save_image(x[i], os.path.join(self.args.image_folder, f"{i}.png"))
 
+#NOTE: sampling images
     def sample_image(self, x, model, last=True):
         try:
             skip = self.args.skip
         except Exception:
             skip = 1
 
+        # ddim sampling
         if self.args.sample_type == "generalized":
             if self.args.skip_type == "uniform":
-                skip = self.num_timesteps // self.args.timesteps
+                skip = self.num_timesteps // self.args.timesteps # args.timesteps is the dim(tau), length of subsequence tau
+                
+                # seq is the sequence of tau
                 seq = range(0, self.num_timesteps, skip)
+                
             elif self.args.skip_type == "quad":
+                # only used in CIFAR10 as suggested by the authors
                 seq = (
                     np.linspace(
                         0, np.sqrt(self.num_timesteps * 0.8), self.args.timesteps
@@ -353,10 +371,17 @@ class Diffusion(object):
                 seq = [int(s) for s in list(seq)]
             else:
                 raise NotImplementedError
+            
             from functions.denoising import generalized_steps
 
-            xs = generalized_steps(x, seq, model, self.betas, eta=self.args.eta)
+            xs = generalized_steps(x, 
+                                   seq, 
+                                   model, 
+                                   self.betas, 
+                                   eta=self.args.eta)
             x = xs
+        
+        # ddpm sampling
         elif self.args.sample_type == "ddpm_noisy":
             if self.args.skip_type == "uniform":
                 skip = self.num_timesteps // self.args.timesteps
@@ -376,7 +401,9 @@ class Diffusion(object):
             x = ddpm_steps(x, seq, model, self.betas)
         else:
             raise NotImplementedError
+        
         if last:
+            # default true, return the predicted at x0
             x = x[0][-1]
         return x
 
