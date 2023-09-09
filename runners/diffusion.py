@@ -201,7 +201,7 @@ class Diffusion(object):
 
                 data_start = time.time()
 
-    def sample(self, batch_size=64):
+    def sample(self, batch_size=64, **kwargs):
         model = Model(self.config)
 
         if not self.args.use_pretrained:
@@ -248,9 +248,10 @@ class Diffusion(object):
             self.sample_fid(model)
         elif self.args.interpolation:
             self.sample_interpolation(model)
+            
         elif self.args.sequence:
             # return the raw images
-            return self.sample_sequence(model, batch_size=batch_size)
+            return self.sample_sequence(model, batch_size=batch_size, **kwargs)
         else:
             raise NotImplementedError("Sample procedeure not defined")
         
@@ -285,7 +286,7 @@ class Diffusion(object):
                     )
                     img_id += 1
 
-    def sample_sequence(self, model, batch_size=8):
+    def sample_sequence(self, model, batch_size=8, **kwargs):
         config = self.config
 
         x = torch.randn(
@@ -298,7 +299,7 @@ class Diffusion(object):
 
         # NOTE: This means that we are producing each predicted x0, not x_{t-1} at timestep t.
         with torch.no_grad():
-            _, x = self.sample_image(x, model, last=False)
+            _, x = self.sample_image(x, model, last=False, **kwargs)
 
         x = [inverse_data_transform(config, y) for y in x]
         
