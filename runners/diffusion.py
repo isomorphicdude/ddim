@@ -352,7 +352,12 @@ class Diffusion(object):
             tvu.save_image(x[i], os.path.join(self.args.image_folder, f"{i}.png"))
 
 #NOTE: sampling images
-    def sample_image(self, x, model, last=True):
+    def sample_image(self, 
+                     x, 
+                     model, 
+                     last=True,
+                     sampler='rms1',
+                     **kwargs):
         try:
             skip = self.args.skip
         except Exception:
@@ -378,14 +383,24 @@ class Diffusion(object):
             else:
                 raise NotImplementedError
             
-            from functions.denoising import generalized_steps
+            from functions.denoising import generalized_steps, generalized_steps_rms1
 
-            xs = generalized_steps(x, 
-                                   seq, 
-                                   model, 
-                                   self.betas, 
-                                   eta=self.args.eta)
-            x = xs
+            if sampler=='ddim':
+                xs = generalized_steps(x, 
+                                    seq, 
+                                    model, 
+                                    self.betas, 
+                                    eta=self.args.eta)
+                x = xs
+                
+            elif sampler=='rms1':
+                xs = generalized_steps_rms1(x, 
+                                            seq, 
+                                            model, 
+                                            self.betas, 
+                                            eta=self.args.eta,
+                                            **kwargs)
+                x = xs
         
         # ddpm sampling
         elif self.args.sample_type == "ddpm_noisy":

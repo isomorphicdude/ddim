@@ -54,6 +54,82 @@ def generalized_steps(x,
     return xs, x0_preds
 
 
+# sampling steps for ddim with RMSProp (following from Wang et al. 2023)
+# Boosting Diffusion Models with an Adaptive Momentum Sampler
+def generalized_steps_rms1(x, 
+                          seq,  # tau subsequence to sample from (times)
+                          model, 
+                          b, # the self.betas
+                          beta_rms, # the beta param for RMSProp
+                          use_scalar_V="norm", # whether to use scalar V
+                          eps=1e-8, # epsilon for RMSProp
+                          **kwargs):
+    
+    with torch.no_grad():
+        n = x.size(0)
+        seq_next = [-1] + list(seq[:-1])
+        x0_preds = []
+        xs = [x]
+        V = torch.zeros_like(x)
+        
+        for i, j in zip(reversed(seq), reversed(seq_next)):
+            
+            t = (torch.ones(n) * i).to(x.device)
+            
+            next_t = (torch.ones(n) * j).to(x.device)
+            
+            at = compute_alpha(b, t.long())
+            
+            at_next = compute_alpha(b, next_t.long())
+            
+            xt = xs[-1].to('cuda')
+            
+            # epsilon(x_t) 
+            et = model(xt, t)
+            
+            # prediction of x0 at time t
+            x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
+            
+            # coefficient before xt
+            coeff_xt = torch.sqrt(at_next) / torch.sqrt(at)
+            
+            # sigma t in equation 12 in DDIM Song et al. 2021
+            c1 = (
+                kwargs.get("eta", 0) * ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt()
+            )
+            
+            # mu in the paper
+            mu = torch.sqrt((1 - at_next - c1) / at_next) - torch.sqrt((1 - at) / at)            
+            
+            # dxt bar in the paper
+            dxt_bar = mu * et + (c1 / torch.sqrt(at_next)) * torch.randn_like(x)
+            
+            # update moving average
+            if use_scalar_V=="norm":
+                V = beta_rms * V + (1 - beta_rms) * (torch.linalg.norm(dxt_bar)**2)
+                
+            elif use_scalar_V=="mean":
+                V = beta_rms * V + (1 - beta_rms) * ((dxt_bar**2).mean())
+                
+            elif use_scalar_V is None:
+                V = beta_rms * V + (1 - beta_rms) * (dxt_bar**2)
+            
+            # sequence of x0 predictions
+            x0_preds.append(x0_t.to('cpu'))
+            
+            # coefficient before model output
+            c2 = ((1 - at_next) - c1 ** 2).sqrt()
+            
+            # prediction * sqrt(alpha_t) + c1 * N(0, 1) + c2 * epsilon(x_t)
+            
+            # xt_next = at_next.sqrt() * x0_t + c1 * torch.randn_like(x) + c2 * et
+            
+            xt_next = coeff_xt * xt + torch.sqrt(at_next) * (dxt_bar / (torch.sqrt(V)+eps))
+            xs.append(xt_next.to('cpu'))
+
+    return xs, x0_preds
+
+
 def ddpm_steps(x, seq, model, b, **kwargs):
     with torch.no_grad():
         n = x.size(0)
