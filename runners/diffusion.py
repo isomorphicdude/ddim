@@ -413,6 +413,9 @@ class Diffusion(object):
                                             eta=self.args.eta,
                                             **kwargs)
                 x = xs
+                
+            elif sampler=='adam':
+                raise NotImplementedError("Adam sampler not implemented")
         
         # ddpm sampling
         elif self.args.sample_type == "ddpm_noisy":
