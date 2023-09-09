@@ -201,7 +201,7 @@ class Diffusion(object):
 
                 data_start = time.time()
 
-    def sample(self):
+    def sample(self, batch_size=64):
         model = Model(self.config)
 
         if not self.args.use_pretrained:
@@ -249,9 +249,12 @@ class Diffusion(object):
         elif self.args.interpolation:
             self.sample_interpolation(model)
         elif self.args.sequence:
-            self.sample_sequence(model)
+            # return the raw images
+            return self.sample_sequence(model, batch_size=batch_size)
         else:
             raise NotImplementedError("Sample procedeure not defined")
+        
+        return None
 
     def sample_fid(self, model):
         config = self.config
@@ -282,11 +285,11 @@ class Diffusion(object):
                     )
                     img_id += 1
 
-    def sample_sequence(self, model):
+    def sample_sequence(self, model, batch_size=8):
         config = self.config
 
         x = torch.randn(
-            8,
+            batch_size,
             config.data.channels,
             config.data.image_size,
             config.data.image_size,
@@ -298,12 +301,15 @@ class Diffusion(object):
             _, x = self.sample_image(x, model, last=False)
 
         x = [inverse_data_transform(config, y) for y in x]
-
+        
+        # save the images
         for i in range(len(x)):
             for j in range(x[i].size(0)):
                 tvu.save_image(
                     x[i][j], os.path.join(self.args.image_folder, f"{j}_{i}.png")
                 )
+                
+        return x
 
     def sample_interpolation(self, model):
         config = self.config
