@@ -145,6 +145,7 @@ def generalized_steps_adam(x,
                           a_adam, # the beta param for RMSProp
                           eps=1e-8, # epsilon for RMSProp
                           debug = False,
+                          use_V = True, # whether to use V
                           **kwargs):
     
     with torch.no_grad():
@@ -194,7 +195,8 @@ def generalized_steps_adam(x,
             M = a_adam * M + np.sqrt(1 - a_adam**2) * dxt_bar
             
             # update moving average
-            V = beta_rms * V + (1 - beta_rms) * (torch.linalg.norm(dxt_bar)**2)
+            if use_V:
+                V = beta_rms * V + (1 - beta_rms) * (torch.linalg.norm(dxt_bar)**2)
             
             # sequence of x0 predictions
             x0_preds.append(x0_t.to('cpu'))
@@ -205,7 +207,10 @@ def generalized_steps_adam(x,
             if debug:
                 xt_bar_next = xt_bar + dxt_bar
             else:
-                xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
+                if use_V:
+                    xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
+                else:
+                    xt_bar_next = xt_bar +  M
             
             xt_next = at_next.sqrt() * xt_bar_next
             
@@ -246,4 +251,5 @@ def ddpm_steps(x, seq, model, b, **kwargs):
             logvar = beta_t.log()
             sample = mean + mask * torch.exp(0.5 * logvar) * noise
             xs.append(sample.to('cpu'))
+            
     return xs, x0_preds
