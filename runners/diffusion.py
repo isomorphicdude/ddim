@@ -321,6 +321,7 @@ class Diffusion(object):
                 x0_preds = [inverse_data_transform(config, y) for y in x0_preds]
                 
                 x = (xs, x0_preds, V_list, M_list)
+                
             else:
                 xs, x0_preds = self.sample_image(x, 
                                         model, 
@@ -330,7 +331,8 @@ class Diffusion(object):
                 xs = [inverse_data_transform(config, y) for y in xs]
                 x0_preds = [inverse_data_transform(config, y) for y in x0_preds]
                 
-        
+                x = (xs, x0_preds)
+        return x
         # save the images
         # for i in range(len(x)):
         #     for j in range(x[i].size(0)):
@@ -338,7 +340,7 @@ class Diffusion(object):
         #             x[i][j], os.path.join(self.args.image_folder, f"{j}_{i}.png")
         #         )
         
-        return xs, x0_preds
+        
 
     def sample_interpolation(self, model):
         config = self.config
