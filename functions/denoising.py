@@ -144,6 +144,7 @@ def generalized_steps_adam(x,
                           beta_rms, # the beta param for RMSProp
                           a_adam, # the beta param for RMSProp
                           eps=1e-8, # epsilon for RMSProp
+                          debug = False,
                           **kwargs):
     
     with torch.no_grad():
@@ -201,7 +202,10 @@ def generalized_steps_adam(x,
             # coefficient before model output
             c2 = ((1 - at_next) - c1 ** 2).sqrt()
             
-            xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
+            if debug:
+                xt_bar_next = xt_bar + dxt_bar
+            else:
+                xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
             
             xt_next = at_next.sqrt() * xt_bar_next
             
