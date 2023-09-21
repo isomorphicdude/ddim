@@ -200,7 +200,8 @@ def generalized_steps_adam(x,
             
             # update moving average
             if use_V:
-                V = beta_rms * V + (1 - beta_rms) * (torch.linalg.norm(dxt_bar, keepdim=True)**2)
+                print(dxt_bar.cpu().numpy().shape)
+                V = beta_rms * V + (1 - beta_rms) * (torch.linalg.norm(dxt_bar)**2)
             
             # sequence of x0 predictions
             x0_preds.append(x0_t.to('cpu'))
