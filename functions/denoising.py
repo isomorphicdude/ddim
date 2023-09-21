@@ -105,7 +105,7 @@ def generalized_steps_rms1(x,
             )
             
             # mu in the paper
-            mu = torch.sqrt((1 - at_next - c1) / at_next) - torch.sqrt((1 - at) / at)            
+            mu = torch.sqrt((1 - at_next - c1**2) / at_next) - torch.sqrt((1 - at) / at)            
             
             # dxt bar in the paper
             dxt_bar = mu * et + (c1 / torch.sqrt(at_next)) * torch.randn_like(x)
@@ -184,7 +184,7 @@ def generalized_steps_adam(x,
             )
             
             # mu in the paper
-            mu = torch.sqrt((1 - at_next - c1) / at_next) - torch.sqrt((1 - at) / at)            
+            mu = torch.sqrt((1 - at_next - c1**2) / at_next) - torch.sqrt((1 - at) / at)            
             
             # dxt bar in the paper
             dxt_bar = mu * et + (c1 / torch.sqrt(at_next)) * torch.randn_like(x)
