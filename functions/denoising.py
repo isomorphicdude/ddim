@@ -205,8 +205,8 @@ def generalized_steps_adam(x,
                                                                        dim=-1)**2).view(n, 1, 1, 1) *\
                                                                            torch.ones_like(x)
                                                                         
-                print(((torch.linalg.norm(dxt_bar.view(n, -1), dim=-1)**2).view(n, 1, 1, 1) *\
-                                                                           torch.ones_like(x)).shape)
+                # print(((torch.linalg.norm(dxt_bar.view(n, -1), dim=-1)**2).view(n, 1, 1, 1) *\
+                                                                        #    torch.ones_like(x)).shape)
             # sequence of x0 predictions
             x0_preds.append(x0_t.to('cpu'))
             
