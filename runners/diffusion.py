@@ -201,7 +201,10 @@ class Diffusion(object):
 
                 data_start = time.time()
 
-    def sample(self, batch_size=64, sampler='ddim', **kwargs):
+    def sample(self, batch_size=64, 
+               sampler='ddim', 
+               last=True,
+               **kwargs):
         model = Model(self.config)
 
         if not self.args.use_pretrained:
@@ -446,8 +449,13 @@ class Diffusion(object):
             raise NotImplementedError
         
         if last:
-            # default true, return the predicted at x0
+            # default true, return the last sample xt
             x = x[0][-1]
+        else:
+            # a pair of outputs
+            # xs, the samples
+            # x0_preds, the prediction for time zero
+            x = x
         return x
 
     def test(self):

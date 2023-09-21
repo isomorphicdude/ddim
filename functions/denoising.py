@@ -57,6 +57,7 @@ def generalized_steps(x,
 
 # sampling steps for ddim with RMSProp (following from Wang et al. 2023)
 # Boosting Diffusion Models with an Adaptive Momentum Sampler
+
 def generalized_steps_rms1(x, 
                           seq,  # tau subsequence to sample from (times)
                           model, 
@@ -86,6 +87,9 @@ def generalized_steps_rms1(x,
             
             xt = xs[-1].to('cuda')
             
+            # define xt bar in paper
+            xt_bar = xt / at.sqrt()
+            
             # epsilon(x_t) 
             et = model(xt, t)
             
@@ -93,7 +97,7 @@ def generalized_steps_rms1(x,
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
             
             # coefficient before xt
-            coeff_xt = torch.sqrt(at_next) / torch.sqrt(at)
+            # coeff_xt = torch.sqrt(at_next) / torch.sqrt(at)
             
             # sigma t in equation 12 in DDIM Song et al. 2021
             c1 = (
@@ -123,9 +127,12 @@ def generalized_steps_rms1(x,
             c2 = ((1 - at_next) - c1 ** 2).sqrt()
         
             if not debug:
-                xt_next = coeff_xt * xt + torch.sqrt(at_next) * (dxt_bar / (torch.sqrt(V)+eps))
+                xt_bar_next = xt_bar + (dxt_bar / (torch.sqrt(V)+eps))
             else:
-                xt_next = coeff_xt * xt + torch.sqrt(at_next) * dxt_bar
+                xt_bar_next = xt_bar + dxt_bar
+                
+            xt_next = at_next.sqrt() * xt_bar_next
+                    
             xs.append(xt_next.to('cpu'))
 
     return xs, x0_preds
@@ -159,6 +166,9 @@ def generalized_steps_adam(x,
             
             xt = xs[-1].to('cuda')
             
+            # define xt bar in paper
+            xt_bar = xt / at.sqrt()
+            
             # epsilon(x_t) 
             et = model(xt, t)
             
@@ -166,7 +176,7 @@ def generalized_steps_adam(x,
             x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
             
             # coefficient before xt
-            coeff_xt = torch.sqrt(at_next) / torch.sqrt(at)
+            # coeff_xt = torch.sqrt(at_next) / torch.sqrt(at)
             
             # sigma t in equation 12 in DDIM Song et al. 2021
             c1 = (
@@ -191,7 +201,10 @@ def generalized_steps_adam(x,
             # coefficient before model output
             c2 = ((1 - at_next) - c1 ** 2).sqrt()
             
-            xt_next = coeff_xt * xt + torch.sqrt(at_next) * (M / (torch.sqrt(V)+eps))
+            xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
+            
+            xt_next = at_next.sqrt() * xt_bar_next
+            
             xs.append(xt_next.to('cpu'))
 
     return xs, x0_preds
