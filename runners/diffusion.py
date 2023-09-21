@@ -395,14 +395,14 @@ class Diffusion(object):
             else:
                 raise NotImplementedError
             
-            from functions.denoising import generalized_steps, generalized_steps_rms1
+            from functions.denoising import generalized_steps, generalized_steps_rms1, generalized_steps_adam
 
             if sampler=='ddim':
                 xs = generalized_steps(x, 
-                                    seq, 
-                                    model, 
-                                    self.betas, 
-                                    eta=self.args.eta)
+                                       seq, 
+                                       model, 
+                                       self.betas, 
+                                       eta=self.args.eta)
                 x = xs
                 
             elif sampler=='rms1':
@@ -415,7 +415,13 @@ class Diffusion(object):
                 x = xs
                 
             elif sampler=='adam':
-                raise NotImplementedError("Adam sampler not implemented")
+                # raise NotImplementedError("Adam sampler not implemented")
+                xs = generalized_steps_adam(x,
+                                            seq,
+                                            model,
+                                            self.betas,
+                                            eta=self.args.eta,
+                                            **kwargs)
         
         # ddpm sampling
         elif self.args.sample_type == "ddpm_noisy":
