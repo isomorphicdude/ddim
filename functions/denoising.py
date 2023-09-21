@@ -70,7 +70,7 @@ def generalized_steps_rms1(x,
         seq_next = [-1] + list(seq[:-1])
         x0_preds = []
         xs = [x]
-        V = torch.zeros_like(x)
+        V = torch.ones_like(x)
         
         for i, j in zip(reversed(seq), reversed(seq_next)):
             
@@ -111,7 +111,7 @@ def generalized_steps_rms1(x,
             elif use_scalar_V=="mean":
                 V = beta_rms * V + (1 - beta_rms) * ((dxt_bar**2).mean())
                 
-            elif use_scalar_V is None:
+            elif use_scalar_V=="vector":
                 V = beta_rms * V + (1 - beta_rms) * (dxt_bar**2)
             
             # sequence of x0 predictions
