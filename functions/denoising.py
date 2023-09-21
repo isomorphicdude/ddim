@@ -63,7 +63,8 @@ def generalized_steps_rms1(x,
                           b, # the self.betas
                           beta_rms, # the beta param for RMSProp
                           use_scalar_V="norm", # whether to use scalar V
-                          eps=1e-8, # epsilon for RMSProp
+                          eps=1e-8, # epsilon for RMSProp,
+                          debug = False,
                           **kwargs):
     
     with torch.no_grad():
@@ -120,12 +121,11 @@ def generalized_steps_rms1(x,
             
             # coefficient before model output
             c2 = ((1 - at_next) - c1 ** 2).sqrt()
-            
-            # prediction * sqrt(alpha_t) + c1 * N(0, 1) + c2 * epsilon(x_t)
-            
-            # xt_next = at_next.sqrt() * x0_t + c1 * torch.randn_like(x) + c2 * et
-            
-            xt_next = coeff_xt * xt + torch.sqrt(at_next) * (dxt_bar / (torch.sqrt(V)+eps))
+        
+            if not debug:
+                xt_next = coeff_xt * xt + torch.sqrt(at_next) * (dxt_bar / (torch.sqrt(V)+eps))
+            else:
+                xt_next = coeff_xt * xt + torch.sqrt(at_next) * dxt_bar
             xs.append(xt_next.to('cpu'))
 
     return xs, x0_preds
