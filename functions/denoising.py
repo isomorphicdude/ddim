@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 # in the paper Song et al. 2021, the authors use the following formula for alpha
 # In Ho et al. 2020 \bar{alpha}_T = \prod_{t=1}^T (1 - \beta_t) which is alpha_t in Song et al. 2021 
@@ -179,7 +180,7 @@ def generalized_steps_adam(x,
             dxt_bar = mu * et + (c1 / torch.sqrt(at_next)) * torch.randn_like(x)
             
             # moving average of momentum
-            M = a_adam * M + torch.sqrt(1 - a_adam**2) * dxt_bar
+            M = a_adam * M + np.sqrt(1 - a_adam**2) * dxt_bar
             
             # update moving average
             V = beta_rms * V + (1 - beta_rms) * (torch.linalg.norm(dxt_bar)**2)
