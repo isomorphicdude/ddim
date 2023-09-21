@@ -155,7 +155,11 @@ def generalized_steps_adam(x,
         xs = [x]
         V = torch.ones_like(x)
         M = torch.zeros_like(x)
-        
+        if debug:
+            print("debugging")
+            V_list = []
+            M_list = []
+                    
         for i, j in zip(reversed(seq), reversed(seq_next)):
             
             t = (torch.ones(n) * i).to(x.device)
@@ -203,20 +207,23 @@ def generalized_steps_adam(x,
             
             # coefficient before model output
             c2 = ((1 - at_next) - c1 ** 2).sqrt()
-            
-            if debug:
-                xt_bar_next = xt_bar + dxt_bar
+                        
+            if use_V:
+                xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
             else:
-                if use_V:
-                    xt_bar_next = xt_bar +  (M / (torch.sqrt(V)+eps))
-                else:
-                    xt_bar_next = xt_bar +  M
+                xt_bar_next = xt_bar +  M
+                
+            if debug:
+                V_list.append(V)
+                M_list.append(M)
             
             xt_next = at_next.sqrt() * xt_bar_next
             
             xs.append(xt_next.to('cpu'))
-
-    return xs, x0_preds
+    if debug:
+        return xs, x0_preds, V_list, M_list
+    else:
+        return xs, x0_preds
 
 
 def ddpm_steps(x, seq, model, b, **kwargs):

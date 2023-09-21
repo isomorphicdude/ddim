@@ -309,11 +309,19 @@ class Diffusion(object):
 
         # NOTE: This means that we are producing each predicted x0, not x_{t-1} at timestep t.
         with torch.no_grad():
-            _, x = self.sample_image(x, 
-                                     model, 
-                                     last=False, 
-                                     sampler=sampler,
-                                     **kwargs)
+            if sampler != 'adam':
+                _, x = self.sample_image(x, 
+                                        model, 
+                                        last=False, 
+                                        sampler=sampler,
+                                        **kwargs)
+            else:
+                xs, x0_preds, V_list, M_list = self.sample_image(x,
+                                                                 model,
+                                                                 last=False,
+                                                                 sampler=sampler,
+                                                                 **kwargs)
+                x = (xs, x0_preds, V_list, M_list)
 
         x = [inverse_data_transform(config, y) for y in x]
         
@@ -323,7 +331,8 @@ class Diffusion(object):
                 tvu.save_image(
                     x[i][j], os.path.join(self.args.image_folder, f"{j}_{i}.png")
                 )
-                
+        
+        
         return x
 
     def sample_interpolation(self, model):
