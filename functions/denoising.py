@@ -147,7 +147,7 @@ def generalized_steps_adam(x,
                           debug = False,
                           use_V = True, # whether to use V
                           **kwargs):
-    
+    print(f"Parameters for generalized_steps_adam: beta_rms={beta_rms}, a_adam={a_adam}, eps={eps}, use_V={use_V}")
     with torch.no_grad():
         n = x.size(0)
         seq_next = [-1] + list(seq[:-1])
