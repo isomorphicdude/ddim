@@ -422,6 +422,7 @@ class Diffusion(object):
                                             self.betas,
                                             eta=self.args.eta,
                                             **kwargs)
+                x = xs
         
         # ddpm sampling
         elif self.args.sample_type == "ddpm_noisy":
