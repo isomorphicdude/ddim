@@ -513,6 +513,7 @@ class Diffusion(object):
                 # append output
                 x0_preds.append(x0_from_e)
                 xs.append(curr_x)
+            return xs, x0_preds
 
     def test(self):
         pass
