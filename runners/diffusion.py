@@ -25,10 +25,10 @@ def torch2hwcuint8(x, clip=False):
     return x
 
 
-def get_beta_schedule(beta_schedule, 
-                      *, 
-                      beta_start, 
-                      beta_end, 
+def get_beta_schedule(beta_schedule,
+                      *,
+                      beta_start,
+                      beta_end,
                       num_diffusion_timesteps):
     def sigmoid(x):
         return 1 / (np.exp(-x) + 1)
@@ -46,7 +46,7 @@ def get_beta_schedule(beta_schedule,
     elif beta_schedule == "linear": # all configs use linear schedule
         # with start=0.0001 and end=0.02, num_diffusion_timesteps=1000
         betas = np.linspace(
-            beta_start, 
+            beta_start,
             beta_end,
             num_diffusion_timesteps,
             dtype=np.float64
@@ -80,17 +80,17 @@ class Diffusion(object):
         self.device = device
 
         self.model_var_type = config.model.var_type
-        
+
         betas = get_beta_schedule(
             beta_schedule=config.diffusion.beta_schedule,
             beta_start=config.diffusion.beta_start,
             beta_end=config.diffusion.beta_end,
             num_diffusion_timesteps=config.diffusion.num_diffusion_timesteps,
         )
-        # reassign betas 
+        # reassign betas
         betas = self.betas = torch.from_numpy(betas).float().to(self.device)
         self.num_timesteps = betas.shape[0]
-        
+
         # still using the notation from Ho et al. 2020, where alpha_t = 1 - beta_t
         alphas = 1.0 - betas
         alphas_cumprod = alphas.cumprod(dim=0)
@@ -201,8 +201,8 @@ class Diffusion(object):
 
                 data_start = time.time()
 
-    def sample(self, batch_size=64, 
-               sampler='ddim', 
+    def sample(self, batch_size=64,
+               sampler='ddim',
                last=True,
                **kwargs):
         model = Model(self.config)
@@ -251,16 +251,16 @@ class Diffusion(object):
             self.sample_fid(model)
         elif self.args.interpolation:
             self.sample_interpolation(model)
-            
+
         elif self.args.sequence:
             # return the raw images
-            return self.sample_sequence(model, 
+            return self.sample_sequence(model,
                                         batch_size=batch_size,
                                         sampler=sampler,
                                         **kwargs)
         else:
             raise NotImplementedError("Sample procedeure not defined")
-        
+
         return None
 
     def sample_fid(self, model):
@@ -292,9 +292,9 @@ class Diffusion(object):
                     )
                     img_id += 1
 
-    def sample_sequence(self, 
-                        model, 
-                        batch_size=8, 
+    def sample_sequence(self,
+                        model,
+                        batch_size=8,
                         sampler='ddim',
                         **kwargs):
         config = self.config
@@ -309,7 +309,6 @@ class Diffusion(object):
 
         # NOTE: This means that we are producing each predicted x0, not x_{t-1} at timestep t.
         with torch.no_grad():
-            
             if sampler == 'adam' and kwargs.get('debug', False):
                 print("debugging")
                 xs, x0_preds, V_list, M_list = self.sample_image(x,
@@ -319,18 +318,19 @@ class Diffusion(object):
                                                                  **kwargs)
                 xs = [inverse_data_transform(config, y) for y in xs]
                 x0_preds = [inverse_data_transform(config, y) for y in x0_preds]
-                
+
                 x = (xs, x0_preds, V_list, M_list)
-                
+
             else:
-                xs, x0_preds = self.sample_image(x, 
-                                        model, 
-                                        last=False, 
+                print("using original sampler")
+                xs, x0_preds = self.sample_image(x,
+                                        model,
+                                        last=False,
                                         sampler=sampler,
                                         **kwargs)
                 xs = [inverse_data_transform(config, y) for y in xs]
                 x0_preds = [inverse_data_transform(config, y) for y in x0_preds]
-                
+
                 x = (xs, x0_preds)
         return x
         # save the images
@@ -339,8 +339,6 @@ class Diffusion(object):
         #         tvu.save_image(
         #             x[i][j], os.path.join(self.args.image_folder, f"{j}_{i}.png")
         #         )
-        
-        
 
     def sample_interpolation(self, model):
         config = self.config
@@ -383,9 +381,9 @@ class Diffusion(object):
             tvu.save_image(x[i], os.path.join(self.args.image_folder, f"{i}.png"))
 
 #NOTE: sampling images
-    def sample_image(self, 
-                     x, 
-                     model, 
+    def sample_image(self,
+                     x,
+                     model,
                      last=True,
                      sampler='rms1',
                      **kwargs):
@@ -398,10 +396,10 @@ class Diffusion(object):
         if self.args.sample_type == "generalized":
             if self.args.skip_type == "uniform":
                 skip = self.num_timesteps // self.args.timesteps # args.timesteps is the dim(tau), length of subsequence tau
-                
+
                 # seq is the sequence of tau
                 seq = range(0, self.num_timesteps, skip)
-                
+
             elif self.args.skip_type == "quad":
                 # only used in CIFAR10 as suggested by the authors
                 seq = (
@@ -413,26 +411,26 @@ class Diffusion(object):
                 seq = [int(s) for s in list(seq)]
             else:
                 raise NotImplementedError
-            
+
             from functions.denoising import generalized_steps, generalized_steps_rms1, generalized_steps_adam
 
             if sampler=='ddim':
-                xs = generalized_steps(x, 
-                                       seq, 
-                                       model, 
-                                       self.betas, 
+                xs = generalized_steps(x,
+                                       seq,
+                                       model,
+                                       self.betas,
                                        eta=self.args.eta)
                 x = xs
-                
+
             elif sampler=='rms1':
-                xs = generalized_steps_rms1(x, 
-                                            seq, 
-                                            model, 
-                                            self.betas, 
+                xs = generalized_steps_rms1(x,
+                                            seq,
+                                            model,
+                                            self.betas,
                                             eta=self.args.eta,
                                             **kwargs)
                 x = xs
-                
+
             elif sampler=='adam':
                 # raise NotImplementedError("Adam sampler not implemented")
                 xs = generalized_steps_adam(x,
@@ -442,9 +440,10 @@ class Diffusion(object):
                                             eta=self.args.eta,
                                             **kwargs)
                 x = xs
-        
+
         # ddpm sampling
-        elif self.args.sample_type == "ddpm_noisy":
+        # elif self.args.sample_type == "ddpm_noisy":
+        elif sampler == 'ddpm':
             if self.args.skip_type == "uniform":
                 skip = self.num_timesteps // self.args.timesteps
                 seq = range(0, self.num_timesteps, skip)
@@ -463,7 +462,7 @@ class Diffusion(object):
             x = ddpm_steps(x, seq, model, self.betas)
         else:
             raise NotImplementedError
-        
+
         if last:
             # default true, return the last sample xt
             x = x[0][-1]
@@ -473,6 +472,47 @@ class Diffusion(object):
             # x0_preds, the prediction for time zero
             x = x
         return x
+
+    @staticmethod
+    def compute_alpha(beta, t):
+        beta = torch.cat([torch.zeros(1).to(beta.device), beta], dim=0)
+        a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
+        return a
+
+    @torch.no_grad()
+    def get_evolution(self, x, seq, model, sampler="ddpm"):
+        """
+        Get the evolution of the posterior mean prediction.
+        for a given x_0 under the forward diffusion process.
+        """
+        if sampler == "ddpm":
+            n = x.size(0)
+            seq_prev = list(seq[1:]) + [0]
+            xs = [x]
+            x0_preds = []
+            betas = self.betas
+            for j,i in zip(seq, seq_prev):
+                curr_x = x.detach().clone()
+                # get diffused
+                t = (torch.ones(n) * i).to(x.device)
+                # next_t = (torch.ones(n) * j).to(x.device)
+                at = self.compute_alpha(betas, t.long())
+                # atm1 = self.compute_alpha(betas, next_t.long())
+                # beta_t = 1 - at / atm1
+                curr_x = curr_x.to('cuda')
+                noise = torch.randn_like(x)
+
+                # get diffused
+                a = (1-betas).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
+                x_diffused = curr_x * a.sqrt() + noise * (1.0 - a).sqrt()
+                output = model(x_diffused, t.float())
+                e = output
+                x0_from_e = (1.0 / at).sqrt() * x - (1.0 / at - 1).sqrt() * e
+                x0_from_e = torch.clamp(x0_from_e, -1, 1)
+
+                # append output
+                x0_preds.append(x0_from_e)
+                xs.append(curr_x)
 
     def test(self):
         pass
